@@ -71,21 +71,88 @@ def parse_input_file(filename):
         - Iteration 3: Finalize parser to correctly populate process_list.
     """
     process_list = []
+    process_count = None
     runfor = None
     algorithm = None
     quantum = None
 
-    # TODO (Tho Pham - Iteration 1): Implement file reading and token parsing.
-    # Example: 
-    #   with open(filename, 'r') as file:
-    #       for line in file:
-    #           # Process each line based on directives.
-    #
-    # TODO (Tho Pham - Iteration 2): Integrate error handling for missing parameters.
-    #
-    # TODO (Tho Pham - Iteration 3): Ensure complete parsing and return all values.
+    valid_algorithms = {"fcfs", "sjf", "rr"}
 
-    return process_list, runfor, algorithm, quantum
+    # (Tho Pham - Iteration 1): Implement file reading and token parsing.
+    # Implemented error handling for missing/invalid parameters
+    try:
+        with open(filename, 'r') as file:
+            lines = file.readlines()
+            
+            for line in lines:
+                parts = line.strip().split()
+                if not parts:
+                    continue  # Skip empty lines
+                
+                key = parts[0]
+                
+                if key == "processcount":
+                    if len(parts) < 2:
+                        raise ValueError("Missing value for 'processcount'.")
+                    process_count = int(parts[1])
+                
+                elif key == "runfor":
+                    if len(parts) < 2:
+                        raise ValueError("Missing value for 'runfor'.")
+                    runfor = int(parts[1])
+                
+                elif key == "use":
+                    if len(parts) < 2:
+                        raise ValueError("Missing scheduling algorithm.")
+                    algorithm = parts[1]
+                    if algorithm not in valid_algorithms:
+                        raise ValueError(f"Invalid scheduling algorithm '{algorithm}'. Choose from {valid_algorithms}.")
+                
+                elif key == "quantum":
+                    if len(parts) < 2:
+                        raise ValueError("Missing value for 'quantum'.")
+                    quantum = int(parts[1])
+                    if quantum <= 0:
+                        raise ValueError("Quantum must be a positive integer.")
+                
+                elif key == "process":
+                    if len(parts) < 7:
+                        raise ValueError("Malformed process entry. Expected format: process name arrival <value> burst <value>")
+                    
+                    name = parts[2]
+                    try:
+                        arrival = int(parts[4])
+                        burst = int(parts[6])
+                    except ValueError:
+                        raise ValueError(f"Invalid arrival/burst value for process '{name}'. Expected integers.")
+                    
+                    process_list.append(Process(name, arrival, burst))
+
+    except FileNotFoundError:
+        print(f"Error: File '{filename}' not found.")
+        sys.exit(1)
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
+    # Final validation for missing critical parameters
+    if process_count is None:
+        print("Error: 'processcount' is missing in the input file.")
+        sys.exit(1)
+    
+    if runfor is None:
+        print("Error: 'runfor' is missing in the input file.")
+        sys.exit(1)
+    
+    if algorithm is None:
+        print("Error: 'use' (scheduling algorithm) is missing in the input file.")
+        sys.exit(1)
+    
+    if algorithm == "rr" and quantum is None:
+        print("Error: 'quantum' value is required for Round Robin (RR) scheduling.")
+        sys.exit(1)
+    
+    return process_count, process_list, runfor, algorithm, quantum
 
 # =============================================================================
 # SECTION: Yauheni Khvashcheuski
