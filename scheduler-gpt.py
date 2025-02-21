@@ -170,16 +170,95 @@ def parse_input_file(filename):
 
 def fcfs_scheduler(process_list, runfor):
     """
-    FIFO (First In, First Out) Scheduling Algorithm.
-    
-    Iterative development notes:
-        - Iteration 1: Draft basic FIFO logic.
-        # TODO: Implement scheduling based on process arrival order.
-        - Iteration 2: Refine process selection and timing.
-        - Iteration 3: Finalize scheduler logic.
+    FIFO (First-Come First-Served) Scheduler - Finalized with Timeline Simulation
+
+    Expected input example:
+        processcount 2	# Read 2 processes
+        runfor 20	# Run for 20 time units
+        use fcfs
+        process name P1 arrival 0 burst 5
+        process name P2 arrival 7 burst 9
+        end
+
+    Expected output:
+          2 processes
+    Using First-Come First-Served
+    Time   0 : P1 arrived
+    Time   0 : P1 selected (burst   5)
+    Time   5 : P1 finished
+    Time   5 : Idle
+    Time   6 : Idle
+    Time   7 : P2 arrived
+    Time   7 : P2 selected (burst   9)
+    Time  16 : P2 finished
+    Time  16 : Idle
+    Time  17 : Idle
+    Time  18 : Idle
+    Time  19 : Idle
+    Finished at time  20
+
+    P1 wait   0 turnaround   5 response   0
+    P2 wait   0 turnaround   9 response   0
     """
-    # TODO (Yauheni - Iteration 1): Implement FIFO scheduling.
-    pass
+    # Sort processes in arrival order.
+    sorted_processes = sorted(process_list, key=lambda p: p.arrival)
+    
+    # Print header.
+    print(f"  {len(process_list)} processes")
+    print("Using First-Come First-Served")
+    
+    ready_queue = []       # List of processes that have arrived and are waiting.
+    current_time = 0       # Simulation clock.
+    arrival_index = 0      # Index for processes sorted by arrival.
+    running_process = None # Currently executing process.
+    
+    # Simulation loop: iterate through each time tick.
+    while current_time < runfor:
+        events = []  # Collect events to print for this tick.
+        selected = False
+        
+        # Check for process arrivals at the current time.
+        while (arrival_index < len(sorted_processes) and 
+               sorted_processes[arrival_index].arrival == current_time):
+            proc = sorted_processes[arrival_index]
+            events.append(f"Time {current_time:3} : {proc.name} arrived")
+            ready_queue.append(proc)
+            arrival_index += 1
+        
+        # If a process is running, check if it finishes at the current time.
+        if running_process is not None and current_time == running_process.start_time + running_process.burst:
+            running_process.finish_time = current_time
+            events.append(f"Time {current_time:3} : {running_process.name} finished")
+            # Calculate waiting time (for FIFO, response equals wait time).
+            running_process.wait_time = running_process.start_time - running_process.arrival
+            running_process = None
+
+        # If the CPU is idle and there are processes waiting, select the next one.
+        if running_process is None and ready_queue:
+            next_proc = ready_queue.pop(0)
+            next_proc.start_time = current_time
+            events.append(f"Time {current_time:3} : {next_proc.name} selected (burst {next_proc.burst:3})")
+            running_process = next_proc
+            selected = True
+
+        # If no process is running and no selection occurred, print an idle event.
+        if running_process is None and not selected:
+            events.append(f"Time {current_time:3} : Idle")
+        
+        # Print all events scheduled for the current tick.
+        for event in events:
+            print(event)
+        
+        current_time += 1
+
+    # After the simulation, print the finishing time.
+    print(f"Finished at time {runfor:3}")
+    
+    # Print metrics for each process.
+    for proc in sorted_processes:
+        turnaround = proc.finish_time - proc.arrival if proc.finish_time is not None else 0
+        response = proc.start_time - proc.arrival if proc.start_time is not None else 0
+        print(f"{proc.name} wait {proc.wait_time:3} turnaround {turnaround:3} response {response:3}")
 
 def sjf_scheduler(process_list, runfor):
     """
