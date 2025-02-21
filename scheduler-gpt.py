@@ -262,15 +262,115 @@ def fcfs_scheduler(process_list, runfor):
 
 def sjf_scheduler(process_list, runfor):
     """
-    Pre-emptive Shortest Job First (SJF) Scheduling Algorithm.
+    Pre-emptive Shortest Job First (SJF) Scheduler - Finalized Version:
     
-    Iterative development notes:
-        - Iteration 1: Draft pseudocode for SJF scheduler.
-        - Iteration 2: Incorporate remaining burst time and arrival conditions.
-        - Iteration 3: Finalize pre-emptive logic.
+    This scheduler simulates each time tick from 0 to runfor-1. At each tick:
+      - Processes arriving at that time are added to the ready queue.
+      - If a process is running, the scheduler checks if any waiting process has a
+        shorter remaining burst time. If so, the running process is pre-empted.
+      - If no process is running and the ready queue is non-empty, the process with
+        the shortest remaining burst is selected.
+      - The selected process runs for one time unit.
+      - When a process's remaining burst reaches zero, it is marked as finished.
+      
+    Timeline events (arrival, selection, finish, idle) are printed at each tick.
+    After the simulation, process metrics are printed.
+    
+    Expected timeline for a sample input:
+        2 processes
+    Using preemptive Shortest Job First
+    Time   0 : P1 arrived
+    Time   0 : P1 selected (burst   5)
+    Time   5 : P1 finished
+    Time   5 : Idle
+    Time   6 : Idle
+    Time   7 : P2 arrived
+    Time   7 : P2 selected (burst   9)
+    Time  16 : P2 finished
+    Time  16 : Idle
+    Time  17 : Idle
+    Time  18 : Idle
+    Time  19 : Idle
+    Finished at time  20
+    
+    P1 wait   0 turnaround   5 response   0
+    P2 wait   0 turnaround   9 response   0
     """
-    # TODO (Yauheni - Iteration 1): Implement initial SJF logic.
-    pass
+    # Sort processes by arrival time for a consistent simulation order.
+    sorted_processes = sorted(process_list, key=lambda p: p.arrival)
+    
+    # Print header information.
+    print(f"  {len(process_list)} processes")
+    print("Using preemptive Shortest Job First")
+    
+    current_time = 0
+    arrival_index = 0
+    ready_queue = []       # Processes that have arrived and are waiting.
+    running_process = None # Currently running process.
+
+    # Simulation loop: one tick at a time.
+    while current_time < runfor:
+        events = []  # Collect events to print for this tick.
+        
+        # a. Process Arrivals.
+        while (arrival_index < len(sorted_processes) and 
+               sorted_processes[arrival_index].arrival == current_time):
+            proc = sorted_processes[arrival_index]
+            events.append(f"Time {current_time:3} : {proc.name} arrived")
+            ready_queue.append(proc)
+            arrival_index += 1
+        
+        # b. Pre-emption check:
+        if running_process is not None and ready_queue:
+            # Find the process in ready_queue with the smallest remaining burst.
+            candidate = min(ready_queue, key=lambda p: p.remaining)
+            if candidate.remaining < running_process.remaining:
+                # Preempt the running process.
+                ready_queue.append(running_process)
+                running_process = candidate
+                ready_queue.remove(candidate)
+                # If this is the process's first run, record its start time.
+                if running_process.start_time is None:
+                    running_process.start_time = current_time
+                events.append(f"Time {current_time:3} : {running_process.name} selected (burst {running_process.remaining:3})")
+        
+        # c. Process selection:
+        if running_process is None and ready_queue:
+            running_process = min(ready_queue, key=lambda p: p.remaining)
+            ready_queue.remove(running_process)
+            if running_process.start_time is None:
+                running_process.start_time = current_time
+            events.append(f"Time {current_time:3} : {running_process.name} selected (burst {running_process.remaining:3})")
+        
+        # d. Execution:
+        if running_process is not None:
+            # Run the current process for one time unit.
+            running_process.remaining -= 1
+            # Check if the process finishes at this tick.
+            if running_process.remaining == 0:
+                running_process.finish_time = current_time + 1
+                events.append(f"Time {current_time+1:3} : {running_process.name} finished")
+                # Calculate waiting time (first selection minus arrival time).
+                running_process.wait_time = running_process.start_time - running_process.arrival
+                running_process = None
+        else:
+            # If no process is running, record an idle tick.
+            events.append(f"Time {current_time:3} : Idle")
+        
+        # Print all events for the current time tick.
+        for event in events:
+            print(event)
+        
+        current_time += 1
+
+    # End-of-simulation summary.
+    print(f"Finished at time {runfor:3}")
+    
+    # Print metrics for each process.
+    for proc in sorted_processes:
+        turnaround = proc.finish_time - proc.arrival if proc.finish_time is not None else 0
+        response = proc.start_time - proc.arrival if proc.start_time is not None else 0
+        print(f"{proc.name} wait {proc.wait_time:3} turnaround {turnaround:3} response {response:3}")
 
 def rr_scheduler(process_list, runfor, quantum):
     """
