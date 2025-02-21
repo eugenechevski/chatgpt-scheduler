@@ -212,6 +212,7 @@ def fcfs_scheduler(process_list, runfor):
     # Print header.
     print(f"  {len(process_list)} processes")
     print("Using First-Come First-Served")
+    log_event(f"  {len(process_list)} processes\nUsing First-Come First-Served")
 
     # List of processes that have arrived and are waiting.
     ready_queue = []
@@ -256,19 +257,23 @@ def fcfs_scheduler(process_list, runfor):
 
         # Print all events scheduled for the current tick.
         for event in events:
+            log_event(event)
             print(event)
 
         current_time += 1
 
     # After the simulation, print the finishing time.
     print(f"Finished at time {runfor:3}")
+    log_event(f"Finished at time {runfor:3}")
 
     # Print metrics for each process.
     for proc in sorted_processes:
         turnaround = proc.finish_time - proc.arrival if proc.finish_time is not None else 0
         response = proc.start_time - proc.arrival if proc.start_time is not None else 0
+        log_event(f"{proc.name} wait {proc.wait_time:3} turnaround {turnaround:3} response {response:3}")
         print(
             f"{proc.name} wait {proc.wait_time:3} turnaround {turnaround:3} response {response:3}")
+    return sorted_processes
 
 
 def sjf_scheduler(process_list, runfor):
@@ -313,6 +318,7 @@ def sjf_scheduler(process_list, runfor):
     # Print header information.
     print(f"  {len(process_list)} processes")
     print("Using preemptive Shortest Job First")
+    log_event(f"  {len(process_list)} processes\nUsing preemptive Shortest Job First")
 
     current_time = 0
     arrival_index = 0
@@ -373,19 +379,24 @@ def sjf_scheduler(process_list, runfor):
 
         # Print all events for the current time tick.
         for event in events:
+            log_event(event)
             print(event)
 
         current_time += 1
 
     # End-of-simulation summary.
+    log_event(f"Finished at time {runfor:3}")
     print(f"Finished at time {runfor:3}")
 
     # Print metrics for each process.
     for proc in sorted_processes:
         turnaround = proc.finish_time - proc.arrival if proc.finish_time is not None else 0
         response = proc.start_time - proc.arrival if proc.start_time is not None else 0
+        log_event(f"{proc.name} wait {proc.wait_time:3} turnaround {turnaround:3} response {response:3}")
         print(
             f"{proc.name} wait {proc.wait_time:3} turnaround {turnaround:3} response {response:3}")
+    
+    return sorted_processes
 
 
 def rr_scheduler(process_list, runfor, quantum):
@@ -429,6 +440,7 @@ def rr_scheduler(process_list, runfor, quantum):
     print(f"  {len(process_list)} processes")
     print("Using Round-Robin")
     print(f"Quantum {quantum:4}\n")
+    log_event(f"  {len(process_list)} processes\nUsing Round-Robin\nQuantum {quantum:4}")
 
     current_time = 0
     arrival_index = 0
@@ -485,11 +497,13 @@ def rr_scheduler(process_list, runfor, quantum):
 
         # Print all events for this tick.
         for event in events:
+            log_event(event)
             print(event)
 
         current_time += 1
 
     # End-of-simulation summary.
+    log_event(f"Finished at time {runfor:3}")
     print(f"Finished at time {runfor:3}\n")
 
     # Calculate and print metrics for each process.
@@ -498,8 +512,10 @@ def rr_scheduler(process_list, runfor, quantum):
         # For Round Robin, waiting time is turnaround minus the original burst.
         wait = turnaround - proc.burst
         response = proc.start_time - proc.arrival if proc.start_time is not None else 0
+        log_event(f"{proc.name} wait {wait:3} turnaround {turnaround:3} response {response:3}")
         print(
             f"{proc.name} wait {wait:3} turnaround {turnaround:3} response {response:3}")
+    return sorted_processes
 
 
 # =============================================================================
@@ -529,30 +545,41 @@ def simulate_and_calculate(process_list, runfor, algorithm, quantum):
         - Iteration 3: Finalize output formatting.
         - Iteration 4: Test simulation and adjust event logging/details.
     """
-    # TODO (Aaron - Iteration 1): Set up the time-tick loop and initial logging.
+    # TODO (Aaron - Iteration 1): Set up the time-tick loop and initial logging. - the schedulers seem to do this already
+    
 
+    
     # Choose scheduler based on the algorithm specified.
     if algorithm == 'fcfs':
-        fcfs_scheduler(process_list, runfor)
+        completed_processes = fcfs_scheduler(process_list, runfor)
     elif algorithm == 'sjf':
-        sjf_scheduler(process_list, runfor)
+        completed_processes = sjf_scheduler(process_list, runfor)
     elif algorithm == 'rr':
         if quantum is None:
             print("Error: Missing quantum parameter when use is 'rr'")
             sys.exit(1)
-        rr_scheduler(process_list, runfor, quantum)
+        completed_processes = rr_scheduler(process_list, runfor, quantum)
     else:
         print(f"Error: Unknown scheduling algorithm '{algorithm}'")
         sys.exit(1)
 
-    # TODO (Aaron - Iteration 2): Calculate and log turnaround, waiting, and response times.
-
+    # TODO (Aaron - Iteration 2): Calculate and log turnaround, waiting, and response times. - the schedulers seem to do this already
+    #for process in completed_processes:
+            #log_event(f"{process.name} wait {process.wait} turnaround {process.turnaround} response {process.response}")
     # TODO (Aaron - Iteration 3): Format and write the output to the .out file.
+    output_filename = input_filename.replace(".in","out")
+    with open(output_filename,"w") as f:
+        for log in process_log:
+            f.write(log+"\n")
+
 
 # =============================================================================
 # Main Function
 # =============================================================================
-
+input_filename = ""
+process_log = []
+def log_event(event):
+    process_log.append(f"{event}")
 
 def main():
     # Validate command-line arguments.
